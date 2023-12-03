@@ -15,34 +15,11 @@ type Round struct {
 	blue  int
 }
 
+type Game []Round
+
 func Day2Puzzle1() {
 
-	file, err := os.Open("input/day2.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	scanner := bufio.NewScanner(file)
-	games := [][]Round{}
-	iGameCounter := 0
-	for scanner.Scan() {
-		iGameCounter++
-		s := scanner.Text()
-		_, sRounds, bFound := strings.Cut(s, ": ")
-		if !bFound {
-			os.Exit(2)
-		}
-
-		arrRounds := strings.Split(sRounds, "; ")
-
-		rounds := []Round{}
-		for _, sRound := range arrRounds {
-			round := parseRound(sRound)
-			rounds = append(rounds, round)
-		}
-		games = append(games, rounds)
-		fmt.Println(rounds)
-	}
+	games := parseGames()
 
 	iMaxRed := 12
 	iMaxGreen := 13
@@ -63,9 +40,17 @@ func Day2Puzzle1() {
 
 	fmt.Println(iAnswer)
 
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+}
+
+func Day2Puzzle2() {
+	iAnswer := 0
+	games := parseGames()
+	for _, game := range games {
+		idealRound := game.idealRound()
+		iPower := idealRound.power()
+		iAnswer += iPower
 	}
+	fmt.Println("Answer: ", iAnswer)
 }
 
 func parseRound(sRound string) Round {
@@ -84,4 +69,51 @@ func parseRound(sRound string) Round {
 		}
 	}
 	return round
+}
+
+func parseGames() []Game {
+	file, err := os.Open("input/day2.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	scanner := bufio.NewScanner(file)
+	games := []Game{}
+	iGameCounter := 0
+	for scanner.Scan() {
+		iGameCounter++
+		s := scanner.Text()
+		_, sRounds, bFound := strings.Cut(s, ": ")
+		if !bFound {
+			os.Exit(2)
+		}
+
+		arrRounds := strings.Split(sRounds, "; ")
+
+		game := Game{}
+		for _, sRound := range arrRounds {
+			round := parseRound(sRound)
+			game = append(game, round)
+		}
+		games = append(games, game)
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+	return games
+}
+
+func (g Game) idealRound() Round {
+	idealRound := Round{}
+	for _, round := range g {
+		idealRound.red = max(idealRound.red, round.red)
+		idealRound.green = max(idealRound.green, round.green)
+		idealRound.blue = max(idealRound.blue, round.blue)
+	}
+	return idealRound
+}
+
+func (r Round) power() int {
+	return r.red * r.green * r.blue
 }
