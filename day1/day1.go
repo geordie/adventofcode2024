@@ -6,10 +6,8 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
-	"strings"
-
-	"github.com/geordie/adventofcode2023/util"
 )
 
 func Day1Puzzle1() {
@@ -19,34 +17,49 @@ func Day1Puzzle1() {
 		log.Fatal(err)
 	}
 
-	ints := make([]int, 0)
+	intsFirst := make([]int, 0)
+	intsSecond := make([]int, 0)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		s := scanner.Text()
-		re := regexp.MustCompile("[1-9]")
+		re := regexp.MustCompile("[0-9]+")
 		sIntTokens := re.FindAllString(s, -1)
 		sFirst := sIntTokens[0]
-		iFirst, _ := strconv.Atoi(sFirst)
-		sLast := sIntTokens[len(sIntTokens)-1]
-		iLast, _ := strconv.Atoi(sLast)
+		sLast := sIntTokens[1]
+		iFirst, err := strconv.Atoi(sFirst)
+		if err != nil {
+			log.Fatal(err)
+		}
+		iLast, err := strconv.Atoi(sLast)
+		if err != nil {
+			log.Fatal(err)
+		}
+		intsFirst = append(intsFirst, iFirst)
+		intsSecond = append(intsSecond, iLast)
+	}
+	sort.Slice(intsFirst, func(i, j int) bool {
+		return intsFirst[i] < intsFirst[j]
+	})
 
-		coord := (iFirst * 10) + iLast
+	sort.Slice(intsSecond, func(i, j int) bool {
+		return intsSecond[i] < intsSecond[j]
+	})
 
-		fmt.Println(s, sIntTokens, coord)
-
-		ints = append(ints, coord)
+	intsDiffs := make([]int, 0)
+	for i := 0; i < len(intsFirst); i++ {
+		iDiff := intsSecond[i] - intsFirst[i]
+		if iDiff < 0 {
+			iDiff = iDiff * -1
+		}
+		intsDiffs = append(intsDiffs, iDiff)
 	}
 
-	fmt.Println(ints)
-	sum := int32(0)
-	for _, num := range ints {
-		sum += int32(num)
+	iAnswer := 0
+	for _, i := range intsDiffs {
+		iAnswer += i
 	}
-	fmt.Println(sum)
 
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
+	fmt.Println(iAnswer)
 }
 
 func Day1Puzzle2() {
@@ -56,51 +69,58 @@ func Day1Puzzle2() {
 		log.Fatal(err)
 	}
 
-	iAnswer := 0
-
+	intsFirst := make(map[int]int)
+	intsSecond := make([]int, 0)
 	scanner := bufio.NewScanner(file)
-	numTokens := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9",
-		"one", "two", "three", "four", "five", "six", "seven", "eight", "nine"}
-
 	for scanner.Scan() {
+
 		s := scanner.Text()
+		re := regexp.MustCompile("[0-9]+")
+		sIntTokens := re.FindAllString(s, -1)
+		sFirst := sIntTokens[0]
+		sLast := sIntTokens[1]
 
-		iMinFirstIndex := len(s)
-		iFirst := -1
-
-		for _, item := range numTokens {
-			idx := strings.Index(s, item)
-			if idx > -1 && idx < iMinFirstIndex {
-				iMinFirstIndex = idx
-				if len(item) == 1 {
-					iFirst, err = strconv.Atoi(item)
-				} else {
-					iFirst = util.GetIntFromEnglish(item)
-				}
-			}
+		iFirst, err := strconv.Atoi(sFirst)
+		if err != nil {
+			log.Fatal(err)
 		}
 
-		iMaxLastIndex := -1
-		iLast := -1
-		for _, item := range numTokens {
-			idx := strings.LastIndex(s, item)
-			if idx > -1 && idx > iMaxLastIndex {
-				iMaxLastIndex = idx
-				if len(item) == 1 {
-					iLast, err = strconv.Atoi(item)
-				} else {
-					iLast = util.GetIntFromEnglish(item)
-				}
-			}
+		iLast, err := strconv.Atoi(sLast)
+		if err != nil {
+			log.Fatal(err)
 		}
 
-		coord := (iFirst * 10) + iLast
-		iAnswer += coord
+		val, exists := intsFirst[iFirst]
+		if !exists {
+			intsFirst[iFirst] = 0
+		} else {
+			iOccurrences := val
+			intsFirst[iFirst] = iOccurrences + 1
+		}
+
+		intsSecond = append(intsSecond, iLast)
+	}
+
+	sort.Slice(intsSecond, func(i, j int) bool {
+		return intsSecond[i] < intsSecond[j]
+	})
+
+	for i := 0; i < len(intsSecond); i++ {
+		iSecond := intsSecond[i]
+		val, exists := intsFirst[iSecond]
+		if exists {
+			iOccurrences := val
+			intsFirst[iSecond] = iOccurrences + 1
+		}
+	}
+
+	iAnswer := 0
+	for k, v := range intsFirst {
+		if v > 0 {
+			iAnswer += k * v
+			fmt.Println(k, v)
+		}
 	}
 
 	fmt.Println(iAnswer)
-
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
 }

@@ -1,119 +1,143 @@
-package day2
+package calories
 
 import (
 	"bufio"
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
-	"strings"
 )
 
-type Round struct {
-	red   int
-	green int
-	blue  int
+type Report struct {
+	Levels []int
+	Deltas []int
 }
-
-type Game []Round
 
 func Day2Puzzle1() {
 
-	games := parseGames()
-
-	iMaxRed := 12
-	iMaxGreen := 13
-	iMaxBlue := 14
-	iAnswer := 0
-
-	for idx, game := range games {
-		iAnswer += (idx + 1)
-		for _, round := range game {
-			if round.red > iMaxRed ||
-				round.green > iMaxGreen ||
-				round.blue > iMaxBlue {
-				iAnswer -= (idx + 1)
-				break
-			}
-		}
-	}
-
-	fmt.Println(iAnswer)
-
-}
-
-func Day2Puzzle2() {
-	iAnswer := 0
-	games := parseGames()
-	for _, game := range games {
-		idealRound := game.idealRound()
-		iPower := idealRound.power()
-		iAnswer += iPower
-	}
-	fmt.Println("Answer: ", iAnswer)
-}
-
-func parseRound(sRound string) Round {
-	arrSets := strings.Split(sRound, ", ")
-
-	round := Round{}
-
-	for _, colourCount := range arrSets {
-		count, colour, _ := strings.Cut(colourCount, " ")
-		if colour == "red" {
-			round.red, _ = strconv.Atoi(count)
-		} else if colour == "green" {
-			round.green, _ = strconv.Atoi(count)
-		} else if colour == "blue" {
-			round.blue, _ = strconv.Atoi(count)
-		}
-	}
-	return round
-}
-
-func parseGames() []Game {
 	file, err := os.Open("input/day2.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	scanner := bufio.NewScanner(file)
-	games := []Game{}
-	iGameCounter := 0
+	iAnswer := 0
+
 	for scanner.Scan() {
-		iGameCounter++
 		s := scanner.Text()
-		_, sRounds, bFound := strings.Cut(s, ": ")
-		if !bFound {
-			os.Exit(2)
+		report := Report{}
+		report.Parse(s)
+		if report.IsSafe(false) {
+			iAnswer++
 		}
-
-		arrRounds := strings.Split(sRounds, "; ")
-
-		game := Game{}
-		for _, sRound := range arrRounds {
-			round := parseRound(sRound)
-			game = append(game, round)
-		}
-		games = append(games, game)
 	}
 
-	if err := scanner.Err(); err != nil {
+	fmt.Println(iAnswer)
+}
+
+func Day2Puzzle2() {
+	file, err := os.Open("input/day2.txt")
+	if err != nil {
 		log.Fatal(err)
 	}
-	return games
-}
 
-func (g Game) idealRound() Round {
-	idealRound := Round{}
-	for _, round := range g {
-		idealRound.red = max(idealRound.red, round.red)
-		idealRound.green = max(idealRound.green, round.green)
-		idealRound.blue = max(idealRound.blue, round.blue)
+	scanner := bufio.NewScanner(file)
+	iAnswer := 0
+
+	for scanner.Scan() {
+		s := scanner.Text()
+		report := Report{}
+		report.Parse(s)
+		if report.IsSafe(true) {
+			iAnswer++
+		}
 	}
-	return idealRound
+
+	fmt.Println(iAnswer)
 }
 
-func (r Round) power() int {
-	return r.red * r.green * r.blue
+func (r *Report) Parse(sLevels string) {
+	re := regexp.MustCompile("[0-9]+")
+	sIntTokens := re.FindAllString(sLevels, -1)
+	for _, s := range sIntTokens {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.Levels = append(r.Levels, i)
+	}
+
+	for i := 0; i < len(r.Levels)-1; i++ {
+		iDiff := r.Levels[i+1] - r.Levels[i]
+		r.Deltas = append(r.Deltas, iDiff)
+	}
+}
+
+func (r *Report) IsSafe(bTest2 bool) bool {
+
+	bSafe := r.LevelsDecreasing() || r.LevelsIncreasing()
+	if !bSafe && bTest2 {
+		bSafe = r.IsSafe2()
+	}
+	return bSafe
+}
+
+func (r *Report) IsSafe2() bool {
+
+	bResult := false
+	for i := 0; i < len(r.Levels); i++ {
+		subReport := Report{}
+		subReportLevels := make([]int, 0)
+		for j := 0; j < len(r.Levels); j++ {
+			if i == j {
+				continue
+			}
+			subReportLevels = append(subReportLevels, r.Levels[j])
+			subReport.Levels = subReportLevels
+		}
+		if subReport.IsSafe(false) {
+			bResult = true
+			break
+		}
+	}
+	return bResult
+}
+
+func (r *Report) LevelsDecreasing() bool {
+
+	if r.Levels == nil || len(r.Levels) < 1 {
+		return false
+	}
+
+	bResult := true
+
+	for i := 0; i < len(r.Levels)-1; i++ {
+		iDiff := r.Levels[i+1] - r.Levels[i]
+		if iDiff > -1 || iDiff < -3 {
+			bResult = false
+			break
+		}
+	}
+
+	return bResult
+}
+
+func (r *Report) LevelsIncreasing() bool {
+
+	if r.Levels == nil || len(r.Levels) < 1 {
+		return false
+	}
+
+	bResult := true
+
+	for i := 0; i < len(r.Levels)-1; i++ {
+		iDiff := r.Levels[i+1] - r.Levels[i]
+		if iDiff < 1 || iDiff > 3 {
+			bResult = false
+			break
+		}
+	}
+
+	return bResult
 }
