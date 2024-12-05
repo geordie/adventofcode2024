@@ -1,4 +1,4 @@
-package calories
+package days
 
 import (
 	"bufio"

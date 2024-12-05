@@ -1,4 +1,4 @@
-package calories
+package days
 
 import (
 	"bufio"
@@ -95,7 +95,6 @@ func FindXXmases(aCoord XCoord, board Board) int {
 	sDownLeft := board.LetterAt(aCoord.x-1, aCoord.y+1)
 
 	sLoop := sUpLeft + sUpRight + sDownRight + sDownLeft
-	fmt.Println(sLoop)
 
 	idx := strings.Index(sLoop, "MM")
 
